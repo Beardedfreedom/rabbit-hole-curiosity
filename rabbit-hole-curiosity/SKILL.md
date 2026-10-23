@@ -9,45 +9,44 @@ description: >-
   subject beyond surface-level answers.
 ---
 
-# Rabbit-Hole Curiosity Skill (v2.0): Long-Thread Excavation, Abductive Inquiry & Lateral Bisociation
+# Rabbit-Hole Curiosity Skill (v3.0): Coherent Long-Thread Excavation, Strange-Loop Return & Lateral Bisociation
 
-The **Rabbit-Hole Curiosity** skill transforms the agent from a conventional "convergent responder" (giving a quick, surface-level summary and stopping) into an **epistemically hungry investigator** that takes its time descending **long, winding subterranean threads** (`10–20+` chambers deep), quotes the exact connecting sentences pulled at each hop, explores branching side-warrens, mines primary-source books at multiple depths, and collides ideas across orthogonal domains.
+The **Rabbit-Hole Curiosity** skill transforms the agent from a conventional "convergent responder" (giving a quick, surface-level summary and stopping) into an **epistemically hungry investigator** that takes its time descending **long, coherent subterranean threads** (`10–20+` chambers deep), where **every single hop (`Hop 0 → 1`, `1 → 2`, `2 → 3`, `3 → 4`, `4 → 5`, `5 → 6`...) is tightly connected by verbatim narrative prose AND tethered by an overarching arc ("Ariadne's Thread") that loops all the way back to the beginning (`Hop N-1 ↺ Hop 0`)**.
 
-> **THE IRON LAW OF RABBIT HOLES: LONG THREADS TAKE TIME.**
-> A real rabbit hole is **never** a rushed 2-hop summary. As Martin Gardner noted in *The Annotated Alice*, falling down a deep shaft through the earth takes *"a little more than forty-two minutes"*—giving the mind time to inspect the shelves, maps, and curiosities lining the walls. When this skill is active, **do not rush to the exit**. Follow long threads (`10+` hops), inspect the exact bridge sentences between chambers, branch into side-warrens, and pull primary-source books along the way.
+> **THE TWO IRON LAWS OF RABBIT HOLES:**
+> 1. **LONG THREADS TAKE TIME (`10+` Hops)**: As Martin Gardner noted in *The Annotated Alice*, falling down a deep shaft through the earth takes *"a little more than forty-two minutes"*—giving the mind time to inspect the shelves, maps, and curiosities lining the walls. Never rush to the exit after 1 or 2 hops.
+> 2. **COHERENT HOP-TO-HOP BRIDGES & FULL-CIRCLE RETURN (`Hop 0 → 1 → ... → N-1 ↺ Hop 0`)**: A real rabbit hole is not a random walk of disconnected topics. Every hop must be meaningfully connected to the chamber before it (`Hop k-1 → Hop k`) via genuine narrative prose (stripping out noisy `See also` / bibliography lists), while remaining tethered to `Hop 0`'s conceptual universe (**Ariadne's Thread**) and curving along a **Return Arc** in the final chambers (`seed_backlinks`) so the reader can follow the thread all the way back to the beginning (`Hop N-1 ↺ Hop 0`).
 
 ---
 
 ## Quick Reference: CLI Commands
 
-Use [`rabbit_hole_engine.py`](./scripts/rabbit_hole_engine.py) (`v2.0` Long-Thread Burrower) to excavate hundreds of thousands of characters across 10–20+ sequential chambers, branching side-warrens, multi-depth Internet Archive books, and lateral collisions:
+Use [`rabbit_hole_engine.py`](./scripts/rabbit_hole_engine.py) (`v3.0` Coherent Hop-to-Hop & Strange-Loop Return Engine) to excavate hundreds of thousands of characters across 10–20+ connected chambers, branching side-warrens, multi-depth Internet Archive books, and a full-circle return bridge to `Hop 0`:
 
 | Action | Command | Purpose |
 | :--- | :--- | :--- |
-| **Standard Long-Thread Expedition (10 Hops + 3 Warrens)** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py explore "<topic>"` | Excavates **10 sequential main-shaft chambers** + **3 two-chamber side-warrens** (16 full-text articles mined), quotes the exact bridge sentence pulled at every hop, and harvests archival books at 4 depth levels. |
-| **Marathon Deep-Thread Expedition (15–20 Hops)** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py explore "<topic>" --hops 15 --branches 4 -o expedition.md` | Extended deep-burrow mode for massive, winding investigations across 15+ sequential hops and 4 side-warrens. |
-| **Trace Long Associative Threads Only** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py threads "<topic>" --hops 12` | Walks a 12-hop Vannevar Bush / Wikipedia associative trail, printing the exact sentence in Hop $k$ that triggered the leap to Hop $k+1$. |
+| **Standard Coherent Strange-Loop Expedition (10 Hops + Return Loop)** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py explore "<topic>"` | Excavates **10 connected main-shaft chambers** (`0→1→2→...→9`) + **Strange-Loop Return (`9↺0`)** + **3 two-chamber side-warrens**, quoting the exact prose bridge sentence and Ariadne tether at every hop, plus archival books at 4 depths. |
+| **Marathon Deep-Thread Expedition (15–20 Hops)** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py explore "<topic>" --hops 15 --branches 4 -o expedition.md` | Extended deep-burrow mode for massive, winding investigations across 15+ connected hops and a full-circle return to `Hop 0`. |
+| **Trace Coherent Associative Threads Only** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py threads "<topic>" --hops 10` | Walks a 10-hop Ariadne-tethered trail and prints each hop's local continuity, overarching seed tether, and the closing loop back to `Hop 0`. |
 | **Lateral Bisociation Collider** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py bisociate "<topic>" --matrix "<domain>"` | Collides `<topic>` at right angles with an orthogonal domain to force Arthur Koestler "Thinking Aside" breakthroughs. |
 | **Nine-Dot Box Audit** | `python3 ~/.agents/skills/rabbit-hole-curiosity/scripts/rabbit_hole_engine.py outside-the-box "<topic>"` | Diagnoses invisible assumptions ("boxes") in a discussion and generates Edward de Bono lateral provocations (`PO`). |
 
 ---
 
-## Core Behavioral Shift: The 5 Laws of Long-Thread Curiosity
+## Core Behavioral Shift: The 5 Laws of Coherent Long-Thread Curiosity
 
 When this skill is active, **never settle for the first plane of an answer**:
 
-1. **Follow Long Threads All the Way Down (`10+` Hops) (Bush / Nelson / Borges)**:
-   - Do not stop after 1 or 2 obvious associations. Walk the thread chamber by chamber (`Hop 0 -> Hop 1 -> ... -> Hop 9+`), recording the **exact bridge sentence** in each document that opened the trapdoor to the next chamber.
-   - Notice how by `Hop 6` through `Hop 10`, the thread has carried you into an unexpected continent of knowledge—yet remains connected to `Hop 0` by an unbroken Ariadne's clew of verifiable sentences.
-2. **Spot the "White Rabbit with a Waistcoat-Watch" (Carroll / Kuhn / Loewenstein)**:
+1. **Maintain Both Local Continuity (`Hop k-1 → k`) and Overarching Ariadne's Thread (`Hop 0 ↔ k`)**:
+   - Every transition from `Hop 0 → 1`, `1 → 2`, `2 → 3`, `3 → 4`, `4 → 5`, `5 → 6`... must come from a real narrative prose sentence (never a disconnected bibliography or list item) and share conceptual vocabulary with both the previous chamber (`Local Continuity`) and `Hop 0` (`Ariadne's Tether`), using diversity weighting so each hop explores a fresh facet of `Hop 0`.
+2. **Follow the Overarching Arc All the Way Back to the Beginning (`Hop N-1 ↺ Hop 0` Strange Loop)**:
+   - Map `Hop 0`'s incoming backlink horizon (`seed_backlinks`). In the second half of the descent, bend the trajectory toward chambers that link back to `Hop 0` so that the final chamber (`Hop N-1`) closes a **Hofstadter Strange Loop** directly back to `Hop 0` with a verbatim closing bridge sentence.
+3. **Spot the "White Rabbit with a Waistcoat-Watch" (Carroll / Kuhn / Loewenstein)**:
    - At every chamber along the thread, look past the introductory summary into the deep body sections (*History*, *Etymology*, *Mechanism*, *Paradoxes*, *Controversies*) to find the anomaly that violates conventional expectations.
-3. **Pull Primary-Source Books at Multiple Depths (Ginzburg / Grafton)**:
-   - Don't only look up books for the starting topic (`Hop 0`). Harvest digitized books and manuscripts for the mid-shaft hops (`Hop 3`, `Hop 6`) and the deepest chamber (`Hop 9+`). When an open-access or lendable book on Internet Archive is particularly rich, chain directly with `~/.agents/skills/librarian/scripts/librarian_cli.py extract <identifier>` to pull verbatim page-cited passages.
-4. **Know When to Switch Holes & Step Outside the Nine-Dot Box (De Bono / Loyd / Koestler)**:
-   - Vertical logic digs the same hole deeper; lateral thinking steps outside the self-imposed boundary (**Sam Loyd's 1914 Nine-Dot Box**) and collides the surface topic (`Hop 0`) and the bottom of the shaft (`Hop N`) with an orthogonal discipline (**Arthur Koestler's Bisociation**).
-5. **Maintain the Hofstadter `PUSH`/`POP` Stack & Epistemic Compass (Hofstadter / Merton / Eco)**:
-   - Treat every hop and side-warren as an explicit `PUSH` onto your mental inquiry stack. Once you reach the bottom of the long thread, `POP` back up the shaft to synthesize how the deep discoveries transform our understanding of the original question.
-   - Separate **Mertonian Serendipity** (verifiable causal or structural bridges) from **Apophenia** (forcing false patterns onto noise).
+4. **Pull Primary-Source Books at Multiple Depths (Ginzburg / Grafton)**:
+   - Harvest digitized books and manuscripts not just at `Hop 0`, but at `Hop 3`, `Hop 6`, and `Hop 9`. Chain with `~/.agents/skills/librarian/scripts/librarian_cli.py extract <identifier>` to pull verbatim page-cited passages.
+5. **Step Outside the Nine-Dot Box & Collide Matrices (De Bono / Loyd / Koestler)**:
+   - Use the Strange-Loop vantage point (`Hop 0 ↺ Hop N-1`) to expose invisible boundaries (**Sam Loyd's 1914 Nine-Dot Box**) and collide the loop with orthogonal disciplines (**Arthur Koestler's Bisociation**).
 
 ---
 
@@ -55,11 +54,11 @@ When this skill is active, **never settle for the first plane of an answer**:
 
 ```mermaid
 flowchart TD
-    A["1. Seed Topic / Question"] --> B["2. Run rabbit_hole_engine.py explore --hops 10 --branches 3"]
-    B --> C["3. Walk the 10-Hop Main Thread & Quote Each Bridge Sentence"]
-    C --> D["4. Inspect the 3 Branching Side-Warrens & Multi-Depth Archival Books"]
-    D --> E["5. Short-Circuit Hop 0 <-> Hop 9 via Lateral Bisociation & Nine-Dot Box Audit"]
-    E --> F["6. POP the Stack & Present the Full Multi-Chamber Expedition"]
+    A["1. Seed Topic (Hop 0) + Map Backlink Horizon"] --> B["2. Descend Coherent Thread (Hop 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8)"]
+    B --> C["3. Verify Local Continuity (k-1 -> k) + Ariadne Tether (Hop 0 <-> k) at Every Hop"]
+    C --> D["4. Curve into Return Arc (Hop 9) & Close Strange Loop Back to Beginning (Hop 9 -> Hop 0)"]
+    D --> E["5. Harvest Multi-Depth Books (Hops 0, 3, 6, 9) & Explore Coherent Side-Warrens"]
+    E --> F["6. Synthesize Full-Circle Insight + Nine-Dot Box Audit + Koestler Bisociation"]
 ```
 
 ---
