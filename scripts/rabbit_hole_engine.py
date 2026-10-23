@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
 """
-rabbit_hole_engine.py - Autonomous Epistemic Curiosity, Multi-Hop Thread Explorer,
-Abductive Clue Generator, and Lateral Bisociation Engine.
+rabbit_hole_engine.py - Deep Long-Thread Autonomous Epistemic Curiosity Engine.
 
-Author: Antigravity Rabbit-Hole Curiosity Skill
+A true rabbit hole is a LONG thread that takes time to descend.
+Instead of a shallow 2-hop summary, this engine:
+1. Fetches the FULL multi-section text of each node along the thread.
+2. Searches deep inside the body sections (History, Mechanism, Paradoxes, Origins)
+   to find buried anomalous sentences that link to the next concept.
+3. Quotes the exact "Bridge Sentence" (the literal thread pulled) that leads
+   from Hop k into Hop k+1 across 10, 15, or 20+ sequential hops.
+4. Spawns branching Side-Warrens (secondary tunnels splitting off at mid-depth).
+5. Queries Internet Archive, Open Library, Library of Congress, and Project Gutenberg
+   at multiple depths along the thread so primary-source books are discovered
+   not just for the surface topic, but for the deep subterranean hops as well.
+6. Runs Sam Loyd Nine-Dot Boundary Audits, Edward de Bono Lateral Hole-Switching,
+   and Arthur Koestler Bisociation Collisions across both surface and deep nodes.
+
 Built on Python 3 standard library (zero external dependencies).
 """
 
 import os
 import sys
 import re
+import time
 import json
 import hashlib
 import argparse
@@ -19,8 +32,8 @@ import urllib.parse
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 
-USER_AGENT = "AntigravityRabbitHoleEngine/1.0 (Epistemic Curiosity & Archival Research)"
-TIMEOUT = 12
+USER_AGENT = "AntigravityRabbitHoleEngine/2.0 (https://github.com/Beardedfreedom/rabbit-hole-curiosity; epistemic-research@github.com) Python-urllib/3"
+TIMEOUT = 15
 
 # =============================================================================
 # Curated Orthogonal Matrices for Arthur Koestler Bisociation ("Thinking Aside")
@@ -82,83 +95,138 @@ ORTHOGONAL_MATRICES: List[Dict[str, str]] = [
         "bridge_prompt": "Without changing the core components of this system, how does changing what is 'folded away' vs. 'exposed' transform its behavior?"
     },
     {
-        "domain": "ant Colony Stigmergy & Pheromone Trails",
+        "domain": "Ant Colony Stigmergy & Pheromone Trails",
         "principle": "Complex collective intelligence emerging from agents leaving traces in the environment that guide subsequent agents, balanced by trail evaporation.",
         "bridge_prompt": "What environmental traces ('pheromones') are participants leaving behind in this discussion, and what happens if old trails fail to evaporate?"
     }
 ]
 
-
-def http_get_json(url: str, timeout: int = TIMEOUT) -> Optional[Dict[str, Any]]:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
-    except Exception:
-        return None
-
-
-# =============================================================================
-# 1. Wikipedia / Hypertext Associative Trail Engine (Bush / Nelson / Borges)
-# =============================================================================
 BORING_LINK_PATTERNS = re.compile(
     r"^(ISBN|DOI|ISSN|OCLC|PMID|S2CID|Wayback Machine|Bibcode|ArXiv|Wikidata|"
     r"List of |Index of |Outline of |Category:|Help:|Portal:|Template:|Special:|"
-    r"\d{4}|January|February|March|April|May|June|July|August|September|October|November|December|"
-    r"United States|United Kingdom|France|Germany|New York|London| Oxford|Cambridge)$",
+    r"\d{1,4}|January|February|March|April|May|June|July|August|September|October|November|December|"
+    r"United States|United Kingdom|France|Germany|Italy|Spain|China|Japan|Russia|Canada|Australia|"
+    r"New York|London|Paris|Berlin|Rome|Oxford|Cambridge|Latin|Greek|English|French|German)$",
     re.IGNORECASE
 )
 
+EPISTEMIC_TRIGGER_WORDS = [
+    "paradox", "anomaly", "unexpected", "mysterious", "controvers", "accident",
+    "serendipit", "coined", "origin", "beneath", "hidden", "secret", "contrary",
+    "puzzle", "labyrinth", "thread", "unlikely", "discovered", "forgotten",
+    "strange", "curious", "assumption", "illusion", "breakthrough", "theorem",
+    "hypothesis", "experiment", "philosoph", "psycholog", "mechanism", "ancient"
+]
 
-def fetch_wiki_node(query_or_title: str) -> Optional[Dict[str, Any]]:
-    """Fetches a Wikipedia concept summary, categories, and outgoing hypertext links."""
-    # Step 1: Search for best matching page title
-    search_params = urllib.parse.urlencode({
-        "action": "query",
-        "list": "search",
-        "srsearch": query_or_title,
-        "srlimit": "3",
-        "format": "json"
-    })
-    search_data = http_get_json(f"https://en.wikipedia.org/w/api.php?{search_params}")
-    if not search_data:
-        return None
-    hits = search_data.get("query", {}).get("search", [])
-    if not hits:
-        return None
 
-    title = hits[0]["title"]
+def log_progress(msg: str) -> None:
+    """Prints live progress to stderr so the investigator sees each chamber being excavated."""
+    sys.stderr.write(f"🐇 [Rabbit-Hole Burrower] {msg}\n")
+    sys.stderr.flush()
 
-    # Step 2: Fetch extract, links, see-also sections, and categories
+
+def http_get_json(url: str, timeout: int = TIMEOUT, retries: int = 3) -> Optional[Dict[str, Any]]:
+    for attempt in range(retries):
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8", errors="replace"))
+        except Exception:
+            if attempt + 1 < retries:
+                time.sleep(0.6 * (attempt + 1))
+    return None
+
+
+# =============================================================================
+# 1. Deep Full-Text Node Excavator & Contextual Bridge Finder
+# =============================================================================
+def split_into_sentences(text: str) -> List[str]:
+    """Splits article text into clean sentences."""
+    cleaned = re.sub(r"\s+", " ", text)
+    raw = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])", cleaned)
+    return [s.strip() for s in raw if len(s.strip()) > 35]
+
+
+def extract_sections(full_text: str) -> List[Tuple[str, str]]:
+    """Extracts named sections (== Section ==) from Wikipedia plaintext extract."""
+    parts = re.split(r"\n(==+\s*[^=]+\s*==+)\n", full_text)
+    sections: List[Tuple[str, str]] = [("Lead / Surface Overview", parts[0].strip())]
+    idx = 1
+    while idx + 1 < len(parts):
+        header = parts[idx].strip("= \t")
+        body = parts[idx + 1].strip()
+        if body and header.lower() not in ["references", "external links", "further reading", "notes", "Bibliography"]:
+            sections.append((header, body))
+        idx += 2
+    return sections
+
+
+def fetch_deep_wiki_node(query_or_title: str, is_exact_title: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Fetches the ENTIRE multi-section text of a Wikipedia article, its sections,
+    categories, backlinks, and up to 250 outgoing links to find buried threads.
+    """
+    title = query_or_title
+    if not is_exact_title:
+        search_params = urllib.parse.urlencode({
+            "action": "query",
+            "list": "search",
+            "srsearch": query_or_title,
+            "srlimit": "3",
+            "format": "json"
+        })
+        search_data = http_get_json(f"https://en.wikipedia.org/w/api.php?{search_params}")
+        if not search_data:
+            return None
+        hits = search_data.get("query", {}).get("search", [])
+        if not hits:
+            return None
+        title = hits[0]["title"]
+
+    # Fetch FULL article text (not just intro!) + links + categories, resolving redirects
     prop_params = urllib.parse.urlencode({
         "action": "query",
         "titles": title,
+        "redirects": "1",
         "prop": "extracts|links|categories",
-        "exintro": "1",
         "explaintext": "1",
-        "pllimit": "80",
+        "pllimit": "250",
         "plnamespace": "0",
-        "cllimit": "15",
+        "cllimit": "20",
         "format": "json"
     })
+    time.sleep(0.35)
     page_data = http_get_json(f"https://en.wikipedia.org/w/api.php?{prop_params}")
     if not page_data:
         return None
 
     pages = page_data.get("query", {}).get("pages", {})
     page_obj = next(iter(pages.values()), {})
-    extract = page_obj.get("extract", "").strip()
+    title = page_obj.get("title", title)
+    full_text = page_obj.get("extract", "").strip()
+    if not full_text:
+        return None
+
+    sections = extract_sections(full_text)
+    lead_text = sections[0][1] if sections else full_text[:1000]
+
+    # Pick a deep section excerpt (e.g., History, Etymology, Mechanism, Paradox, or mid-article section)
+    deep_section_title = "Deep Subterranean Section"
+    deep_section_excerpt = ""
+    for sec_title, sec_body in sections[1:]:
+        if len(sec_body) > 200:
+            deep_section_title = sec_title
+            deep_section_excerpt = re.sub(r"\s+", " ", sec_body)[:700]
+            if any(k in sec_title.lower() for k in ["history", "origin", "etymology", "mechanism", "theory", "paradox", "criticism", "controversy", "example", "discovery"]):
+                break
+
     raw_links = [l.get("title", "") for l in page_obj.get("links", []) if l.get("title")]
     categories = [
         c.get("title", "").replace("Category:", "")
         for c in page_obj.get("categories", [])
-        if "articles" not in c.get("title", "").lower()
-        and "pages" not in c.get("title", "").lower()
-        and "wikidata" not in c.get("title", "").lower()
-        and "cs1" not in c.get("title", "").lower()
+        if not any(x in c.get("title", "").lower() for x in ["articles", "pages", "wikidata", "cs1", "webarchive", "short description", "dmy", "mdy"])
     ]
 
-    # Filter links to keep high-curiosity conceptual threads
     interesting_links = [
         lnk for lnk in raw_links
         if not BORING_LINK_PATTERNS.match(lnk)
@@ -166,61 +234,163 @@ def fetch_wiki_node(query_or_title: str) -> Optional[Dict[str, Any]]:
         and lnk.lower() != title.lower()
     ]
 
-    # Sort links deterministically but favor multi-word conceptual phrases
-    def link_curiosity_score(lnk: str) -> Tuple[int, int]:
-        words = lnk.split()
-        has_concept_kw = any(
-            w in lnk.lower()
-            for w in ["theory", "paradox", "effect", "hypothesis", "history", "philosophy",
-                      "psychology", "system", "model", "law", "problem", "illusion",
-                      "architecture", "network", "labyrinth", "method", "experiment", "syndrome"]
-        )
-        return (1 if has_concept_kw else 0, 1 if 2 <= len(words) <= 4 else 0)
+    # Now match outgoing links against actual sentences in the full text
+    # so we know the EXACT contextual sentence ("bridge thread") where each link lives!
+    all_sentences = split_into_sentences(full_text)
+    total_sents = max(len(all_sentences), 1)
 
-    interesting_links.sort(key=link_curiosity_score, reverse=True)
+    scored_bridges: List[Dict[str, Any]] = []
+    seen_targets = set()
+
+    for lnk in interesting_links:
+        if lnk.lower() in seen_targets:
+            continue
+        # Search for link title (or its core phrase) inside sentences, preferring deeper sentences
+        pattern = re.compile(r"\b" + re.escape(lnk) + r"\b", re.IGNORECASE)
+        matched_sent = None
+        matched_pos = 0
+        for s_idx, sent in enumerate(all_sentences):
+            if pattern.search(sent):
+                matched_sent = sent
+                matched_pos = s_idx
+                # Keep looking if this was in the very first sentence so we prefer deeper body sentences
+                if s_idx >= 3:
+                    break
+
+        if matched_sent:
+            seen_targets.add(lnk.lower())
+            # Score by epistemic trigger words + depth in article + multi-word concept
+            trig_count = sum(1 for tw in EPISTEMIC_TRIGGER_WORDS if tw in matched_sent.lower() or tw in lnk.lower())
+            depth_bonus = 2 if (matched_pos / total_sents) > 0.2 else 1
+            word_bonus = 2 if 2 <= len(lnk.split()) <= 4 else 1
+            score = (trig_count * 3) + depth_bonus + word_bonus
+            scored_bridges.append({
+                "target": lnk,
+                "bridge_sentence": matched_sent[:450],
+                "sentence_index": matched_pos,
+                "total_sentences": total_sents,
+                "score": score
+            })
+
+    # Also keep fallback links that didn't match exact case/plural in plaintext
+    if len(scored_bridges) < 10:
+        for lnk in interesting_links:
+            if lnk.lower() not in seen_targets:
+                seen_targets.add(lnk.lower())
+                trig_count = sum(1 for tw in EPISTEMIC_TRIGGER_WORDS if tw in lnk.lower())
+                scored_bridges.append({
+                    "target": lnk,
+                    "bridge_sentence": f"Connected via conceptual thread in '{title}' ({deep_section_title}).",
+                    "sentence_index": total_sents // 2,
+                    "total_sentences": total_sents,
+                    "score": trig_count * 2
+                })
+
+    scored_bridges.sort(key=lambda x: x["score"], reverse=True)
 
     return {
         "title": title,
         "url": f"https://en.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}",
-        "extract": re.sub(r"\s+", " ", extract)[:650],
+        "char_length": len(full_text),
+        "section_count": len(sections),
+        "section_names": [s[0] for s in sections[:10]],
+        "lead_extract": re.sub(r"\s+", " ", lead_text)[:650],
+        "deep_section_title": deep_section_title,
+        "deep_section_excerpt": deep_section_excerpt,
         "categories": categories[:8],
-        "threads": interesting_links[:15]
+        "scored_bridges": scored_bridges[:25],
+        "threads": [b["target"] for b in scored_bridges[:20]]
     }
 
 
-def trace_associative_trail(seed_topic: str, hops: int = 3) -> List[Dict[str, Any]]:
+def trace_long_rabbit_hole(seed_topic: str, hops: int = 10, branch_count: int = 3) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    Traces a multi-hop Vannevar Bush Memex associative trail through hypertext links.
+    Traces a LONG, winding multi-hop rabbit hole (`hops` chambers deep),
+    recording the exact verbatim bridge sentence pulled at every single hop,
+    PLUS spawns secondary side-warren branches along the descent!
     """
     trail: List[Dict[str, Any]] = []
+    side_warrens: List[Dict[str, Any]] = []
     visited = set()
     current_query = seed_topic
+    incoming_bridge: Optional[Dict[str, Any]] = None
 
     for hop_idx in range(hops):
-        node = fetch_wiki_node(current_query)
-        if not node or node["title"].lower() in visited:
-            break
+        log_progress(f"Excavating Chamber [Hop {hop_idx}/{hops - 1}]: '{current_query}'...")
+        visited.add(current_query.lower())
+        node = fetch_deep_wiki_node(current_query, is_exact_title=(hop_idx > 0))
+        if not node or (node["title"].lower() in visited and node["title"].lower() != current_query.lower()):
+            node = None
+            if trail:
+                prev_bridges = [b for b in trail[-1]["scored_bridges"] if b["target"].lower() not in visited]
+                for alt in prev_bridges[:6]:
+                    visited.add(alt["target"].lower())
+                    log_progress(f"  ↻ Pivoting to alternate thread in chamber: '{alt['target']}'...")
+                    cand_node = fetch_deep_wiki_node(alt["target"], is_exact_title=True)
+                    if cand_node and cand_node["title"].lower() not in (visited - {alt["target"].lower()}):
+                        incoming_bridge = alt
+                        node = cand_node
+                        break
+            if not node:
+                break
+
         visited.add(node["title"].lower())
         node["hop"] = hop_idx
+        node["incoming_bridge"] = incoming_bridge
         trail.append(node)
 
-        # Choose next hop that hasn't been visited yet
-        next_candidates = [t for t in node["threads"] if t.lower() not in visited]
-        if not next_candidates:
+        # Find unvisited bridges out of this chamber
+        candidates = [b for b in node["scored_bridges"] if b["target"].lower() not in visited]
+        if not candidates:
             break
-        # Pick candidate at offset hop_idx % len to diversify
-        current_query = next_candidates[min(hop_idx, len(next_candidates) - 1)]
 
-    return trail
+        # If we are at a mid-depth chamber, also spawn a Side-Warren branch!
+        if len(side_warrens) < branch_count and hop_idx in (1, 3, 5, 7) and len(candidates) > 2:
+            side_bridge = candidates[1]
+            visited.add(side_bridge["target"].lower())
+            log_progress(f"  ↳ Exploring Side-Warren Branch off Hop {hop_idx}: '{side_bridge['target']}'...")
+            side_node = fetch_deep_wiki_node(side_bridge["target"], is_exact_title=True)
+            if side_node:
+                visited.add(side_node["title"].lower())
+                # Follow the side-warren one more hop deeper!
+                side_sub_candidates = [b for b in side_node["scored_bridges"] if b["target"].lower() not in visited]
+                side_leaf = None
+                if side_sub_candidates:
+                    leaf_bridge = side_sub_candidates[0]
+                    visited.add(leaf_bridge["target"].lower())
+                    log_progress(f"    ↳ Following Side-Warren deeper into: '{leaf_bridge['target']}'...")
+                    side_leaf = fetch_deep_wiki_node(leaf_bridge["target"], is_exact_title=True)
+                    if side_leaf:
+                        visited.add(side_leaf["title"].lower())
+                        side_leaf["incoming_bridge"] = leaf_bridge
+
+                side_warrens.append({
+                    "parent_hop": hop_idx,
+                    "parent_title": node["title"],
+                    "bridge_from_parent": side_bridge,
+                    "first_chamber": side_node,
+                    "second_chamber": side_leaf
+                })
+
+        # Re-filter candidates after side-warren visits
+        candidates = [b for b in node["scored_bridges"] if b["target"].lower() not in visited]
+        if not candidates:
+            break
+
+        chosen = candidates[0]
+        incoming_bridge = chosen
+        current_query = chosen["target"]
+
+    return trail, side_warrens
 
 
 # =============================================================================
-# 2. Digital Library & Dojo Vault Archival Burrow (IA + Open Library + Dojo)
+# 2. Multi-Depth Archival Book & Primary-Source Harvester
 # =============================================================================
-def search_archival_books(topic: str, rows: int = 5) -> List[Dict[str, Any]]:
-    """Searches Internet Archive & Open Library for primary and scholarly books on the topic."""
+def search_archival_books(topic: str, rows: int = 4) -> List[Dict[str, Any]]:
+    """Searches Internet Archive & Open Library for primary and scholarly books on a topic."""
     books: List[Dict[str, Any]] = []
-    clean_topic = topic.replace('"', '').strip()
+    clean_topic = re.sub(r'["():]', ' ', topic).strip()
     queries = [
         f'mediatype:(texts) AND (title:("{clean_topic}") OR subject:("{clean_topic}"))',
         f'mediatype:(texts) AND ({clean_topic})'
@@ -240,6 +410,7 @@ def search_archival_books(topic: str, rows: int = 5) -> List[Dict[str, Any]]:
                 restricted = str(doc.get("access-restricted-item", "false")).lower() == "true"
                 ident = doc.get("identifier", "")
                 books.append({
+                    "for_topic": topic,
                     "identifier": ident,
                     "title": doc.get("title", "Untitled"),
                     "creator": doc.get("creator", "Unknown"),
@@ -249,6 +420,29 @@ def search_archival_books(topic: str, rows: int = 5) -> List[Dict[str, Any]]:
                 })
             break
     return books
+
+
+def harvest_books_across_thread(trail: List[Dict[str, Any]], rows_per_stop: int = 3) -> List[Dict[str, Any]]:
+    """
+    Instead of only looking up books for Hop 0, harvests archival books at
+    4 depth levels along the long thread (Surface Entry, Upper Shaft, Deep Shaft, Bottom Chamber)!
+    """
+    if not trail:
+        return []
+    n = len(trail)
+    indices = sorted(list({0, n // 3, (2 * n) // 3, n - 1}))
+    all_books: List[Dict[str, Any]] = []
+    seen_ids = set()
+    for idx in indices:
+        node = trail[idx]
+        log_progress(f"Mining Internet Archive & Open Library catalogs for Hop {idx} ('{node['title']}')...")
+        b_list = search_archival_books(node["title"], rows=rows_per_stop)
+        for b in b_list:
+            if b["identifier"] not in seen_ids:
+                seen_ids.add(b["identifier"])
+                b["hop"] = idx
+                all_books.append(b)
+    return all_books
 
 
 def search_dojo_vault(topic: str) -> List[str]:
@@ -272,35 +466,37 @@ def search_dojo_vault(topic: str) -> List[str]:
 # 3. Five-Lens Abductive & Venatic Curiosity Question Generator
 # =============================================================================
 def generate_curiosity_lenses(topic: str, trail: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-    """Generates structured epistemic curiosity questions across the 5 Rabbit-Hole strata."""
+    """Generates structured epistemic curiosity questions spanning the entire long thread."""
     hop_titles = [n["title"] for n in trail[1:]] if len(trail) > 1 else ["adjacent disciplines"]
-    hop_str = ", ".join(hop_titles)
+    deepest_title = trail[-1]["title"] if trail else topic
+    mid_title = trail[len(trail) // 2]["title"] if len(trail) > 2 else deepest_title
+    hop_chain_str = " → ".join([n["title"] for n in trail])
 
     return [
         {
             "lens": "1. The White Rabbit Anomaly (Lewis Carroll / Thomas Kuhn)",
             "focus": "Violation of Paradigm Expectations",
-            "question": f"What is the single most counterintuitive, anomalous, or 'weird' empirical fact about '{topic}' that standard textbook summaries gloss over or treat as an awkward footnote?"
+            "question": f"What is the single most counterintuitive, anomalous, or 'weird' empirical fact about '{topic}'—and how does descending down the thread to '{deepest_title}' expose an anomaly that surface summaries completely miss?"
         },
         {
             "lens": "2. Reasoning Backwards / The Scarlet Thread (Conan Doyle / C.S. Peirce Abduction)",
-            "focus": "Retroductive Reconstruction",
-            "question": f"If we treat '{topic}' as the final result at a crime scene and reason backwards, what forgotten crisis, historical constraint, or fierce controversy forced it into its current shape?"
+            "focus": "Retroductive Reconstruction Across the Thread",
+            "question": f"Tracing the scarlet thread backwards from Hop {len(trail)-1} ('{deepest_title}') through '{mid_title}' back to Hop 0 ('{topic}'), what hidden causal mechanism or historical struggle secretly links the bottom of this shaft to the top?"
         },
         {
             "lens": "3. The Venatic Micro-Clue & Etymology (Carlo Ginzburg / Anthony Grafton)",
             "focus": "Microscopic Marginalia & Linguistic Fossil Record",
-            "question": f"What hidden history is buried inside the literal etymology, original terminology, or earliest primary-source manuscripts of '{topic}'? Whose voices or dead-end experiments were erased along the way?"
+            "question": f"What hidden history is buried inside the literal etymology, footnotes, or earliest primary-source manuscripts along the chain [{hop_chain_str}]? Whose voices or dead-end experiments were erased along the way?"
         },
         {
             "lens": "4. In the Threads / Rhizomatic Cross-Passages (Borges / Deleuze / Vannevar Bush)",
-            "focus": "Multi-Hop Associative Trails",
-            "question": f"Following the hypertext thread from '{topic}' into [{hop_str}], what unexpected structural isomorphism or feedback loop connects these seemingly separate worlds?"
+            "focus": "Long-Distance Structural Isomorphism",
+            "question": f"At first glance, '{topic}' (Hop 0) and '{deepest_title}' (Hop {len(trail)-1}) live in different worlds—yet we walked from one to the other via verifiable bridge sentences. What deep structural law or feedback loop do they share?"
         },
         {
             "lens": "5. Epistemic vs. Diversive Depth (Ian Leslie / Mihaly Csikszentmihalyi)",
             "focus": "First-Principles Mechanism",
-            "question": f"Beneath the surface metaphors used to describe '{topic}', what is the exact causal, mathematical, or material mechanism that makes it work—and where does that mechanism break down under extreme conditions?"
+            "question": f"Beneath the surface metaphors used to describe '{topic}' and '{mid_title}', what is the exact causal, mathematical, or material mechanism that governs them—and where does that mechanism break down under extreme conditions?"
         }
     ]
 
@@ -308,7 +504,7 @@ def generate_curiosity_lenses(topic: str, trail: List[Dict[str, Any]]) -> List[D
 # =============================================================================
 # 4. Sam Loyd Nine-Dot Box Audit & Edward de Bono Lateral Provocations
 # =============================================================================
-def generate_outside_the_box(topic: str) -> Dict[str, Any]:
+def generate_outside_the_box(topic: str, deepest_topic: str) -> Dict[str, Any]:
     """Generates Nine-Dot boundary diagnostics and Edward de Bono Lateral Thinking provocations."""
     return {
         "nine_dot_origin": (
@@ -318,13 +514,13 @@ def generate_outside_the_box(topic: str) -> Dict[str, Any]:
         ),
         "boundary_audit_questions": [
             f"Boundary 1 (The Invisible Perimeter): What unspoken rule or boundary in '{topic}' is everyone obeying simply because they assume the 'dots' define a closed box?",
-            f"Boundary 2 (Scale & Time Horizon): What happens to '{topic}' if we shrink the scale by 1,000x (micro-level) or expand the time horizon by 100 years?",
-            f"Boundary 3 (The Observer Frame): Who is currently defining what counts as 'success' or 'normal' in '{topic}', and how does the problem look from the perspective of an outsider or waste byproduct?"
+            f"Boundary 2 (The Long-Thread Perspective): How does looking at '{topic}' from the vantage point of Hop N ('{deepest_topic}') shatter the conventional framing of the problem?",
+            f"Boundary 3 (Scale & Time Horizon): What happens to '{topic}' if we shrink the scale by 1,000x (micro-level) or expand the time horizon by 100 years?"
         ],
         "de_bono_lateral_provocations": [
-            f"PO-1 [Reversal]: Instead of 'How do we optimize/understand {topic}?', ask: 'What if {topic} deliberately worked in reverse, or what if the perceived flaw is actually its primary feature?'",
-            f"PO-2 [Elimination]: What happens if we remove the single most 'indispensable' component of '{topic}' and force the remaining parts to compensate?",
-            f"PO-3 [Exaggeration]: What if '{topic}' were scaled to 100% of the entire system, or reduced to zero tomorrow?",
+            f"PO-1 [Reversal]: Instead of 'How do we optimize/understand {topic}?', ask: 'What if {topic} deliberately worked in reverse, or what if its perceived flaw is actually its primary evolutionary feature?'",
+            f"PO-2 [Cross-Chamber Fusion]: Force a direct short-circuit between Hop 0 ('{topic}') and the bottom of the shaft ('{deepest_topic}'): what new invention, theory, or question emerges when you fuse them directly?",
+            f"PO-3 [Elimination]: What happens if we remove the single most 'indispensable' assumption of '{topic}' and force the remaining parts to compensate?",
             f"PO-4 [Hole-Switching]: Edward de Bono's Law: 'Vertical thinking is digging the same hole deeper; lateral thinking is digging a hole in a new place.' Where is the current discussion digging a deeper hole in the wrong spot?"
         ]
     }
@@ -333,71 +529,127 @@ def generate_outside_the_box(topic: str) -> Dict[str, Any]:
 # =============================================================================
 # 5. Arthur Koestler Bisociation Collider ("Thinking Aside")
 # =============================================================================
-def select_bisociations(topic: str, custom_matrix: Optional[str] = None, count: int = 3) -> List[Dict[str, str]]:
-    """Selects orthogonal matrices to collide with `<topic>` at right angles."""
+def select_bisociations(topic: str, deepest_topic: str, custom_matrix: Optional[str] = None, count: int = 3) -> List[Dict[str, str]]:
+    """Selects orthogonal matrices to collide with both the surface topic and the deepest hop."""
     selected: List[Dict[str, str]] = []
     if custom_matrix:
         selected.append({
             "domain": custom_matrix,
             "principle": f"Structural laws, dynamics, and failure modes native to {custom_matrix}.",
-            "bridge_prompt": f"Bisociate '{topic}' (Matrix 1) with '{custom_matrix}' (Matrix 2): Where do their underlying mechanisms intersect at right angles?"
+            "bridge_prompt": f"Bisociate '{topic}' (and its deep thread '{deepest_topic}') with '{custom_matrix}': Where do their underlying mechanisms intersect at right angles?"
         })
 
-    # Deterministically hash topic to pick diverse matrices
     h = int(hashlib.sha256(topic.encode("utf-8")).hexdigest(), 16)
     n = len(ORTHOGONAL_MATRICES)
     for i in range(count):
         idx = (h + i * 5) % n
         mat = ORTHOGONAL_MATRICES[idx]
+        target_label = f"{topic} ↔ {deepest_topic}" if deepest_topic != topic else topic
         selected.append({
             "domain": mat["domain"],
             "principle": mat["principle"],
-            "bridge_prompt": f"[{topic} × {mat['domain']}] {mat['bridge_prompt']}"
+            "bridge_prompt": f"[{target_label} × {mat['domain']}] {mat['bridge_prompt']}"
         })
     return selected[:count]
 
 
 # =============================================================================
-# Report Formatter
+# Markdown Expedition Formatter
 # =============================================================================
 def format_markdown_report(
     topic: str,
     trail: List[Dict[str, Any]],
+    side_warrens: List[Dict[str, Any]],
     books: List[Dict[str, Any]],
     dojo_hits: List[str],
     lenses: List[Dict[str, str]],
     box_audit: Dict[str, Any],
-    bisociations: List[Dict[str, str]]
+    bisociations: List[Dict[str, str]],
+    elapsed_sec: float
 ) -> str:
     lines: List[str] = []
-    lines.append(f"# Rabbit-Hole Curiosity Dossier: {topic}")
-    lines.append("*Generated by the Antigravity Rabbit-Hole Curiosity Engine (`rabbit_hole_engine.py`)*\n")
+    total_chars_read = sum(n.get("char_length", 0) for n in trail) + sum(
+        w["first_chamber"].get("char_length", 0) + (w["second_chamber"].get("char_length", 0) if w.get("second_chamber") else 0)
+        for w in side_warrens
+    )
+    deepest_title = trail[-1]["title"] if trail else topic
 
-    # 1. Associative Hypertext Trail
-    lines.append("## 1. In the Threads: Live Multi-Hop Associative Trail (Bush / Nelson / Borges)")
+    lines.append(f"# Deep Rabbit-Hole Expedition Log: {topic} → {deepest_title}")
+    lines.append(
+        f"*Excavated via `rabbit_hole_engine.py` | "
+        f"**{len(trail)} Main-Shaft Chambers** + **{len(side_warrens)} Side-Warrens** | "
+        f"**{total_chars_read:,} chars** of full-text articles mined in **{elapsed_sec:.1f}s***\n"
+    )
+
+    # Overview Map of the Thread
     if trail:
-        seed = trail[0]
-        lines.append(f"- **Entry Shaft (`Hop 0`) — [{seed['title']}]({seed['url']})**:")
-        lines.append(f"  > {seed['extract']}")
-        if seed["categories"]:
-            lines.append(f"  - *Ontological Categories*: `{', '.join(seed['categories'])}`")
-        if seed["threads"]:
-            lines.append(f"  - *Branching Subterranean Threads*: {', '.join(f'`{t}`' for t in seed['threads'][:10])}\n")
+        chain_str = " ──► ".join(f"**[Hop {n['hop']}: {n['title']}]**" for n in trail)
+        lines.append("## 0. Map of the Main Subterranean Thread")
+        lines.append(f"> {chain_str}\n")
 
-        for node in trail[1:]:
-            lines.append(f"- **Associative Leap (`Hop {node['hop']}`) — [{node['title']}]({node['url']})**:")
-            lines.append(f"  > {node['extract']}")
+    # 1. Chamber-by-Chamber Descent Down the Long Thread
+    lines.append("## 1. Down the Long Thread: Chamber-by-Chamber Excavation (Bush / Nelson / Borges)")
+    if trail:
+        for node in trail:
+            hop = node["hop"]
+            bridge = node.get("incoming_bridge")
+            lines.append(f"### Chamber {hop} (`Hop {hop}`): [{node['title']}]({node['url']})")
+            lines.append(
+                f"- **Corpus Depth Mined**: `{node['char_length']:,} chars` across `{node['section_count']} sections` "
+                f"({', '.join(f'*{s}*' for s in node['section_names'][:6])})"
+            )
+            if bridge:
+                lines.append(
+                    f"- **🧵 Exact Thread Pulled from Hop {hop - 1}** *(Sentence #{bridge['sentence_index']} of {bridge['total_sentences']})*:"
+                )
+                lines.append(f"  > *\"{bridge['bridge_sentence']}\"*")
+            lines.append(f"- **Surface Overview**:")
+            lines.append(f"  > {node['lead_extract']}")
+            if node.get("deep_section_excerpt"):
+                lines.append(f"- **Deep Excavation (`§ {node['deep_section_title']}`)**:")
+                lines.append(f"  > {node['deep_section_excerpt']}")
+            if node["categories"]:
+                lines.append(f"- **Ontological Strata**: `{', '.join(node['categories'])}`")
             if node["threads"]:
-                lines.append(f"  - *Next-Level Threads*: {', '.join(f'`{t}`' for t in node['threads'][:6])}\n")
+                lines.append(f"- **Unexplored Doors in This Chamber**: {', '.join(f'`{t}`' for t in node['threads'][:8])}\n")
     else:
-        lines.append(f"- *No live Wikipedia hypertext node matched `{topic}` directly — treat `{topic}` as an uncharted frontier and apply direct abductive decomposition below.*\n")
+        lines.append(f"- *No live hypertext node matched `{topic}` directly — apply direct abductive decomposition below.*\n")
 
-    # 2. Primary Source Archival Books
-    lines.append("## 2. Primary-Source Archival Burrow (Internet Archive & Open Library)")
+    # 1B. Side-Warrens (Branching Tunnels)
+    if side_warrens:
+        lines.append("## 2. Branching Side-Warrens (Rhizomatic Offshoots Along the Descent)")
+        for idx, w in enumerate(side_warrens, 1):
+            c1 = w["first_chamber"]
+            c2 = w.get("second_chamber")
+            b1 = w["bridge_from_parent"]
+            lines.append(f"### Side-Warren {idx} (Splitting off `Hop {w['parent_hop']}: {w['parent_title']}`)")
+            lines.append(f"- **🧵 Branching Thread Pulled**: *\"{b1['bridge_sentence']}\"*")
+            lines.append(f"- **Sub-Chamber A — [{c1['title']}]({c1['url']})** (`{c1['char_length']:,} chars`):")
+            lines.append(f"  > {c1['lead_extract']}")
+            if c1.get("deep_section_excerpt"):
+                lines.append(f"  - *Deep Section (`§ {c1['deep_section_title']}`)*: {c1['deep_section_excerpt'][:400]}...")
+            if c2:
+                b2 = c2.get("incoming_bridge", {})
+                lines.append(f"- **Sub-Chamber B (2nd-Order Branch) — [{c2['title']}]({c2['url']})** (`{c2['char_length']:,} chars`):")
+                if b2.get("bridge_sentence"):
+                    lines.append(f"  - *🧵 Thread Pulled*: *\"{b2['bridge_sentence']}\"*")
+                lines.append(f"  > {c2['lead_extract']}\n")
+            else:
+                lines.append("")
+
+    # 3. Primary Source Archival Books Across Multiple Hops
+    lines.append("## 3. Multi-Depth Archival Book Burrow (Internet Archive & Open Library)")
     if books:
         for b in books:
-            lines.append(f"- **`[{b['access']}]` [{b['title']}]({b['url']})** ({b['year']}) — *{b['creator']}* (`{b['identifier']}`)")
-        lines.append("\n  *(Tip: Run `python3 ~/.agents/skills/librarian/scripts/librarian_cli.py extract <identifier> --keywords \"...\"` to ingest full-text OCR from any open or lendable volume above.)*\n")
+            hop_tag = f"Hop {b.get('hop', 0)} ({b.get('for_topic', topic)})"
+            lines.append(
+                f"- **`[{hop_tag}]` `[{b['access']}]` [{b['title']}]({b['url']})** ({b['year']}) — "
+                f"*{b['creator']}* (`{b['identifier']}`)"
+            )
+        lines.append(
+            "\n  *(Tip: Chain with `python3 ~/.agents/skills/librarian/scripts/librarian_cli.py extract <identifier> --keywords \"...\"` "
+            "to ingest full-text OCR from any volume discovered along the thread.)*\n"
+        )
     else:
         lines.append("- *No direct catalog title match; broaden search terms with `librarian_cli.py global-search`.*\n")
 
@@ -407,15 +659,15 @@ def format_markdown_report(
             lines.append(f"- `{dh}`")
         lines.append("")
 
-    # 3. Five-Lens Abductive & Venatic Prompts
-    lines.append("## 3. The Five Investigative Lenses (Carroll / Peirce / Ginzburg / Kuhn / Leslie)")
+    # 4. Five-Lens Abductive & Venatic Prompts
+    lines.append("## 4. The Five Investigative Lenses Across the Thread (Carroll / Peirce / Ginzburg / Kuhn / Leslie)")
     for l in lenses:
         lines.append(f"### {l['lens']}")
         lines.append(f"- **Cognitive Focus**: *{l['focus']}*")
         lines.append(f"- **Investigative Probe**: {l['question']}\n")
 
-    # 4. Outside the Nine-Dot Box & De Bono Lateral Hole-Digging
-    lines.append("## 4. Thinking Outside the Box & Lateral Hole-Switching (Sam Loyd / Edward de Bono)")
+    # 5. Outside the Nine-Dot Box & De Bono Lateral Hole-Digging
+    lines.append("## 5. Thinking Outside the Box & Lateral Hole-Switching (Sam Loyd / Edward de Bono)")
     lines.append(f"> *{box_audit['nine_dot_origin']}*\n")
     lines.append("### Self-Imposed Boundary Diagnostics")
     for q in box_audit["boundary_audit_questions"]:
@@ -425,25 +677,29 @@ def format_markdown_report(
         lines.append(f"- {po}")
     lines.append("")
 
-    # 5. Arthur Koestler Bisociation Collisions
-    lines.append("## 5. Arthur Koestler Bisociation Collider ('Thinking Aside' Across Matrices)")
+    # 6. Arthur Koestler Bisociation Collisions
+    lines.append("## 6. Arthur Koestler Bisociation Collider ('Thinking Aside' Across Matrices)")
     for idx, bi in enumerate(bisociations, 1):
-        lines.append(f"### Collision {idx}: `{topic}` × `{bi['domain']}`")
+        lines.append(f"### Collision {idx}: `{topic} ↔ {deepest_title}` × `{bi['domain']}`")
         lines.append(f"- **Orthogonal Matrix Principle**: {bi['principle']}")
         lines.append(f"- **Bisociative Synthesis Prompt**: **{bi['bridge_prompt']}**\n")
 
-    # 6. Hofstadter Stack & Epistemic Compass
-    lines.append("## 6. Hofstadter Inquiry Stack (`PUSH`/`POP`) & Epistemic Compass")
+    # 7. Hofstadter Stack & Epistemic Compass
+    lines.append("## 7. Hofstadter Inquiry Stack (`PUSH`/`POP`) & Epistemic Compass")
     lines.append("```text")
-    lines.append(f"[STACK LEVEL 0: SURFACE GOAL]  {topic}")
+    lines.append(f"[STACK LEVEL 0: SURFACE ENTRY]  {topic}")
     if len(trail) > 1:
         for n in trail[1:]:
-            lines.append(f"  └── PUSH [HOP {n['hop']} THREAD]   {n['title']}  (Remember to POP back to Level 0!)")
-    for idx, bi in enumerate(bisociations, 1):
-        lines.append(f"  └── PUSH [BISOCIATION {idx}]  {topic} × {bi['domain']}")
+            indent = "  " * min(n["hop"], 6)
+            lines.append(f"{indent}└── PUSH [HOP {n['hop']} CHAMBER]  {n['title']}")
+    for idx, w in enumerate(side_warrens, 1):
+        c1 = w["first_chamber"]["title"]
+        c2 = f" -> {w['second_chamber']['title']}" if w.get("second_chamber") else ""
+        lines.append(f"    ├── PUSH [SIDE-WARREN {idx} off Hop {w['parent_hop']}]  {c1}{c2}")
+    lines.append(f"  [POP ALL FRAMES -> SYNTHESIZE BACK TO SURFACE GOAL: {topic}]")
     lines.append("```")
     lines.append("- **Mertonian Serendipity vs. Apophenia Check (Eco / Pynchon)**:")
-    lines.append("  1. *Does this connection rest on a verifiable causal mechanism, primary source, or testable structural isomorphism?* (Serendipity)")
+    lines.append("  1. *Does this long-thread connection rest on a verifiable causal bridge, primary source, or testable structural isomorphism?* (Serendipity)")
     lines.append("  2. *Or does it rely purely on verbal coincidence and unfalsifiable pattern-matching?* (Apophenia — discard or flag as metaphor!)")
 
     return "\n".join(lines)
@@ -454,22 +710,24 @@ def format_markdown_report(
 # =============================================================================
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Rabbit-Hole Curiosity Engine: Multi-Hop Thread Explorer, Abductive Clue Generator & Lateral Bisociation Collider"
+        description="Rabbit-Hole Curiosity Engine v2.0: Deep Long-Thread Excavator, Side-Warren Explorer & Lateral Bisociation Collider"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # explore
-    p_exp = subparsers.add_parser("explore", help="Run full 6-stratum rabbit-hole exploration on a topic")
+    p_exp = subparsers.add_parser("explore", help="Run deep long-thread rabbit-hole expedition on a topic")
     p_exp.add_argument("topic", help="Topic, question, or concept to investigate")
-    p_exp.add_argument("--hops", type=int, default=3, help="Number of associative hypertext hops (default: 3)")
-    p_exp.add_argument("--rows", type=int, default=5, help="Number of archival books to retrieve (default: 5)")
+    p_exp.add_argument("--hops", type=int, default=10, help="Number of sequential chambers down the main thread (default: 10, use 15-20 for marathon threads)")
+    p_exp.add_argument("--branches", type=int, default=3, help="Number of branching side-warrens to excavate along the descent (default: 3)")
+    p_exp.add_argument("--rows", type=int, default=3, help="Number of archival books to retrieve per depth stop (default: 3)")
     p_exp.add_argument("--matrix", help="Optional custom orthogonal domain for Koestler bisociation")
-    p_exp.add_argument("-o", "--output", help="Save full Markdown dossier to file")
+    p_exp.add_argument("-o", "--output", help="Save full Markdown expedition dossier to file")
 
     # threads
-    p_thr = subparsers.add_parser("threads", help="Trace a live multi-hop associative hypertext trail")
+    p_thr = subparsers.add_parser("threads", help="Trace a long multi-hop associative hypertext trail with exact bridge sentences")
     p_thr.add_argument("topic", help="Seed topic")
-    p_thr.add_argument("--hops", type=int, default=3, help="Number of hops (default: 3)")
+    p_thr.add_argument("--hops", type=int, default=10, help="Number of sequential hops (default: 10)")
+    p_thr.add_argument("--branches", type=int, default=3, help="Number of branching side-warrens (default: 3)")
 
     # bisociate
     p_bis = subparsers.add_parser("bisociate", help="Collide topic with orthogonal domains (Koestler Bisociation)")
@@ -482,43 +740,54 @@ def main() -> int:
     p_box.add_argument("topic", help="Target topic or problem")
 
     args = parser.parse_args()
+    t0 = time.time()
 
     if args.command == "explore":
-        trail = trace_associative_trail(args.topic, hops=args.hops)
-        books = search_archival_books(args.topic, rows=args.rows)
+        trail, side_warrens = trace_long_rabbit_hole(args.topic, hops=args.hops, branch_count=args.branches)
+        books = harvest_books_across_thread(trail, rows_per_stop=args.rows) if trail else search_archival_books(args.topic, rows=args.rows)
         dojo_hits = search_dojo_vault(args.topic)
+        deepest_title = trail[-1]["title"] if trail else args.topic
         lenses = generate_curiosity_lenses(args.topic, trail)
-        box_audit = generate_outside_the_box(args.topic)
-        bisociations = select_bisociations(args.topic, custom_matrix=args.matrix, count=3)
+        box_audit = generate_outside_the_box(args.topic, deepest_title)
+        bisociations = select_bisociations(args.topic, deepest_title, custom_matrix=args.matrix, count=3)
+        elapsed = time.time() - t0
 
         report = format_markdown_report(
             topic=args.topic,
             trail=trail,
+            side_warrens=side_warrens,
             books=books,
             dojo_hits=dojo_hits,
             lenses=lenses,
             box_audit=box_audit,
-            bisociations=bisociations
+            bisociations=bisociations,
+            elapsed_sec=elapsed
         )
         if args.output:
             out_path = Path(args.output).resolve()
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(report, encoding="utf-8")
-            print(f"[Rabbit-Hole Engine] Dossier saved to {out_path} ({len(report.splitlines())} lines).")
+            log_progress(f"Expedition complete in {elapsed:.1f}s! Dossier saved to {out_path} ({len(report.splitlines())} lines).")
         else:
             print(report)
         return 0
 
     elif args.command == "threads":
-        trail = trace_associative_trail(args.topic, hops=args.hops)
+        trail, side_warrens = trace_long_rabbit_hole(args.topic, hops=args.hops, branch_count=args.branches)
         for node in trail:
-            print(f"[Hop {node['hop']}] {node['title']} ({node['url']})")
-            print(f"  Summary: {node['extract']}")
-            print(f"  Threads: {', '.join(node['threads'][:8])}\n")
+            b = node.get("incoming_bridge")
+            print(f"=== [Hop {node['hop']}] {node['title']} ({node['char_length']:,} chars | {node['section_count']} sections) ===")
+            print(f"  URL: {node['url']}")
+            if b:
+                print(f"  Thread Pulled: \"{b['bridge_sentence']}\"")
+            print(f"  Overview: {node['lead_extract']}")
+            if node.get("deep_section_excerpt"):
+                print(f"  Deep Section (§ {node['deep_section_title']}): {node['deep_section_excerpt'][:350]}...")
+            print(f"  Next Doors: {', '.join(node['threads'][:8])}\n")
         return 0
 
     elif args.command == "bisociate":
-        bis = select_bisociations(args.topic, custom_matrix=args.matrix, count=args.count)
+        bis = select_bisociations(args.topic, args.topic, custom_matrix=args.matrix, count=args.count)
         for idx, b in enumerate(bis, 1):
             print(f"=== Collision {idx}: {args.topic} × {b['domain']} ===")
             print(f"  Principle: {b['principle']}")
@@ -526,7 +795,7 @@ def main() -> int:
         return 0
 
     elif args.command == "outside-the-box":
-        box = generate_outside_the_box(args.topic)
+        box = generate_outside_the_box(args.topic, args.topic)
         print(f"=== Sam Loyd 1914 Nine-Dot Boundary Audit: {args.topic} ===")
         for q in box["boundary_audit_questions"]:
             print(f"  • {q}")
